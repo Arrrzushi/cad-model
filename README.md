@@ -1,5 +1,4 @@
 This repo contains dynamic 2D CAD Model of a Steel Girder Bridge 
-<img width="1424" height="1035" alt="image" src="https://github.com/user-attachments/assets/86b46579-a322-498b-9d5f-5e309b5e0c1d" />
-<img width="1401" height="1035" alt="image" src="https://github.com/user-attachments/assets/d7b498ca-f9e7-43b4-922c-3338bf7615db" />
 
-
+<img width="955" height="679" alt="bridge_cross_section" src="https://github.com/user-attachments/assets/6b672ffa-9481-48c8-83b8-c2a75b241d07" />
+<img width="955" height="679" alt="bridge_top_view" src="https://github.com/user-attachments/assets/c7ca7283-6795-4146-a1e3-eaad4d2573c8" />
