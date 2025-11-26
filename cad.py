@@ -124,10 +124,14 @@ class BridgeCADWidget(QWidget):
         painter.setPen(QPen(text_color, 0.8))
         painter.drawText(int(x), int(y - padding), text)
     
-    def draw_dimension_arrow(self, painter, x1, y1, x2, y2, text, horizontal=True, offset=0, text_offset=0):
-        """dimension line with arrows and text """
+    def draw_dimension_arrow(self, painter, x1, y1, x2, y2, text, horizontal=True, offset=0, text_offset=0, draw_extensions=True, extension_direction='down'):
+        """dimension line with arrows and text with extension lines
+        
+        extension_direction: 'down', 'up' for horizontal dims; 'left', 'right' for vertical dims
+        """
         painter.setPen(QPen(QColor(0, 0, 0), 0.8))
         
+        # Draw main dimension line
         painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
         
         ext_len = 6
@@ -156,6 +160,22 @@ class BridgeCADWidget(QWidget):
             ]
             painter.drawPolygon(QPolygonF(right_arrow))
             
+            # Draw vertical dotted extension lines
+            if draw_extensions:
+                painter.setPen(QPen(QColor(100, 100, 100), 0.8, Qt.DotLine))
+                extension_length = 40  # Length of vertical dotted line
+                
+                if extension_direction == 'up':
+                    # Lines go upward
+                    painter.drawLine(QPointF(x1, y1), QPointF(x1, y1 - extension_length))
+                    painter.drawLine(QPointF(x2, y2), QPointF(x2, y2 - extension_length))
+                else:  # 'down' or default
+                    # Lines go downward
+                    painter.drawLine(QPointF(x1, y1), QPointF(x1, y1 + extension_length))
+                    painter.drawLine(QPointF(x2, y2), QPointF(x2, y2 + extension_length))
+                
+                painter.setPen(QPen(QColor(0, 0, 0), 0.8))  # Reset pen
+            
             text_x = (x1 + x2) / 2
             text_y = y1 - 8 + text_offset if offset >= 0 else y1 + 15 + text_offset
             
@@ -164,7 +184,7 @@ class BridgeCADWidget(QWidget):
             text_width = metrics.boundingRect(text).width()
             
             self.draw_text_with_background(painter, text_x - text_width/2, text_y, text, 
-                                          QColor(255, 255, 255, 240), QColor(0, 0, 0), 7, True)
+                                        QColor(255, 255, 255, 240), QColor(0, 0, 0), 7, True)
         else:
             top_arrow = [
                 QPointF(x1, y1),
@@ -180,12 +200,26 @@ class BridgeCADWidget(QWidget):
             ]
             painter.drawPolygon(QPolygonF(bottom_arrow))
             
+            # Draw horizontal dotted extension lines for vertical dimensions
+            if draw_extensions:
+                painter.setPen(QPen(QColor(100, 100, 100), 0.8, Qt.DotLine))
+                extension_length = 20
+                
+                if extension_direction == 'left':
+                    painter.drawLine(QPointF(x1, y1), QPointF(x1 - extension_length, y1))
+                    painter.drawLine(QPointF(x2, y2), QPointF(x2 - extension_length, y2))
+                else:  # 'right' or default
+                    painter.drawLine(QPointF(x1, y1), QPointF(x1 + extension_length, y1))
+                    painter.drawLine(QPointF(x2, y2), QPointF(x2 + extension_length, y2))
+                
+                painter.setPen(QPen(QColor(0, 0, 0), 0.8))
+            
             text_x = x1 + (12 if offset >= 0 else -45) + text_offset
             text_y = (y1 + y2) / 2 + 3
             
             self.draw_text_with_background(painter, text_x, text_y, text,
-                                          QColor(255, 255, 255, 240), QColor(0, 0, 0), 7, True)
-    
+                                        QColor(255, 255, 255, 240), QColor(0, 0, 0), 7, True)
+        
     def draw_leader_arrow(self, painter, from_x, from_y, to_x, to_y, text, bg_color=QColor(255, 255, 255, 250), text_color=QColor(0, 0, 0)):
         """a leader line with arrow pointing to component """
         painter.setPen(QPen(QColor(0, 0, 0), 1.0))
@@ -247,7 +281,7 @@ class BridgeCADWidget(QWidget):
 
         margin = 140
         scale = min((width - 2*margin) / total_deck_width,
-                   (height - 2*margin - 250) / (self.girder['depth'] * self.girder_visual_scale['depth'] +
+                (height - 2*margin - 250) / (self.girder['depth'] * self.girder_visual_scale['depth'] +
                                                 self.params['deck_thickness'] +
                                                 self.params['footpath_thickness'] + 1500))
 
@@ -258,7 +292,7 @@ class BridgeCADWidget(QWidget):
         painter.setPen(QPen(QColor(0, 0, 0), 2))
         title_text = "CROSS-SECTION VIEW"
         self.draw_text_with_background(painter, 30, 35, title_text, 
-                                       QColor(230, 240, 255, 250), QColor(0, 0, 100), 11, True)
+                                    QColor(230, 240, 255, 250), QColor(0, 0, 100), 11, True)
 
         girder_depth_visual = self.girder['depth'] * scale * self.girder_visual_scale['depth']
         girder_top_y = base_y - girder_depth_visual
@@ -289,13 +323,13 @@ class BridgeCADWidget(QWidget):
         painter.setPen(QPen(QColor(0, 0, 0), 2))
         painter.setBrush(Qt.NoBrush)
         painter.drawRect(QRectF(deck_left_x, deck_top_y,
-                               deck_right_x - deck_left_x, deck_thick_px))
+                            deck_right_x - deck_left_x, deck_thick_px))
 
         # Fill carriageway area
         painter.setBrush(QBrush(QColor(200, 200, 200)))
         painter.setPen(Qt.NoPen)
         painter.drawRect(QRectF(carriageway_start_x, deck_top_y,
-                               self.params['carriageway_width'] * scale, deck_thick_px))
+                            self.params['carriageway_width'] * scale, deck_thick_px))
 
         # Crash barrier areas on deck (between footpath and carriageway)
         painter.drawRect(QRectF(left_barrier_x, deck_top_y,
@@ -308,18 +342,18 @@ class BridgeCADWidget(QWidget):
             painter.setBrush(QBrush(QColor(220, 220, 220)))
             painter.setPen(QPen(QColor(0, 0, 0), 2))
             painter.drawRect(QRectF(left_fp_x, fp_top_y,
-                                   left_fp_width * scale, fp_thick_px))
+                                left_fp_width * scale, fp_thick_px))
 
         if fp_config in ['right', 'both'] and right_fp_width > 0:
             painter.setBrush(QBrush(QColor(220, 220, 220)))
             painter.setPen(QPen(QColor(0, 0, 0), 2))
             painter.drawRect(QRectF(right_fp_x, fp_top_y,
-                                   right_fp_width * scale, fp_thick_px))
+                                right_fp_width * scale, fp_thick_px))
 
-        # Draw crash barriers (between footpath and carriageway, sitting on deck)
+        # Draw crash barriers with side parameter
         cb_y = deck_top_y
-        self.draw_crash_barrier(painter, left_barrier_x, cb_y, scale)
-        self.draw_crash_barrier(painter, right_barrier_x, cb_y, scale)
+        self.draw_crash_barrier(painter, left_barrier_x, cb_y, scale, side='left')
+        self.draw_crash_barrier(painter, right_barrier_x, cb_y, scale, side='right')
 
         painter.setPen(QPen(QColor(0, 0, 0), 1.5))
         painter.drawLine(QPointF(deck_left_x, deck_bottom_y), 
@@ -353,9 +387,9 @@ class BridgeCADWidget(QWidget):
                 x1 = positions[i]
                 x2 = positions[i + 1]
                 painter.drawLine(QPointF(x1, girder_top_edge), 
-                               QPointF(x2, girder_bottom_edge))
+                            QPointF(x2, girder_bottom_edge))
                 painter.drawLine(QPointF(x1, girder_bottom_edge), 
-                               QPointF(x2, girder_top_edge))
+                            QPointF(x2, girder_top_edge))
 
         # Draw girders and stiffeners 
         painter.setBrush(QBrush(GIRDER_COLOR))
@@ -386,7 +420,6 @@ class BridgeCADWidget(QWidget):
             deck_left_x, deck_right_x, left_fp_width, right_fp_width, fp_top_y, fp_thick_px,
             left_fp_x, right_fp_x
         )
-
     def add_clean_component_labels(self, painter, carriageway_start_x, carriageway_end_x,
                                left_barrier_x, right_barrier_x, deck_top_y, deck_bottom_y,
                                deck_thick_px, positions, base_y, scale, n, fp_config,
@@ -493,23 +526,24 @@ class BridgeCADWidget(QWidget):
                                             QColor(60, 60, 60), 7, True)
 
     def add_professional_cross_section_dimensions(self, painter, deck_left_x, deck_right_x,
-                                          carriageway_start_x, carriageway_end_x,
-                                          left_barrier_x, right_barrier_x,
-                                          deck_top_y, deck_bottom_y, fp_top_y,
-                                          base_y, scale, girder_positions, n,
-                                          fp_config, left_fp_width, right_fp_width,
-                                          left_fp_x, right_fp_x):
+                                        carriageway_start_x, carriageway_end_x,
+                                        left_barrier_x, right_barrier_x,
+                                        deck_top_y, deck_bottom_y, fp_top_y,
+                                        base_y, scale, girder_positions, n,
+                                        fp_config, left_fp_width, right_fp_width,
+                                        left_fp_x, right_fp_x):
         """Add organized dimension lines """
         
         fp_thick_px = self.params['footpath_thickness'] * scale
         
-        # LEVEL 1: Overall deck width
+        # LEVEL 1: Overall deck width (ABOVE - extension lines go DOWN)
         y_level1 = deck_top_y - 150
         total_width_m = (deck_right_x - deck_left_x) / scale / 1000
         self.draw_dimension_arrow(painter, deck_left_x, y_level1, deck_right_x, y_level1,
-                                f"Total Deck Width = {total_width_m:.2f} m", True)
+                                f"Total Deck Width = {total_width_m:.2f} m", True, 
+                                extension_direction='down')
         
-        # LEVEL 2: Major components
+        # LEVEL 2: Major components (ABOVE - extension lines go DOWN)
         y_level2 = deck_top_y - 100
         
         # Footpath dimension
@@ -517,31 +551,32 @@ class BridgeCADWidget(QWidget):
             fp_m = left_fp_width / 1000
             self.draw_dimension_arrow(painter, left_fp_x, y_level2, 
                                     left_fp_x + left_fp_width * scale, y_level2,
-                                    f"FP = {fp_m:.2f}m", True)
+                                    f"FP = {fp_m:.2f}m", True, extension_direction='down')
         
         # Carriageway
         y_level2b = deck_top_y - 60
         cw_m = self.params['carriageway_width'] / 1000
         self.draw_dimension_arrow(painter, carriageway_start_x, y_level2b, carriageway_end_x, y_level2b,
-                                f"Carriageway = {cw_m:.2f} m", True)
+                                f"Carriageway = {cw_m:.2f} m", True, extension_direction='down')
         
         # Right footpath dimension
         if fp_config in ['right', 'both'] and right_fp_width > 0:
             fp_m = right_fp_width / 1000
             self.draw_dimension_arrow(painter, right_fp_x, y_level2, 
                                     right_fp_x + right_fp_width * scale, y_level2,
-                                    f"FP = {fp_m:.2f}m", True)
+                                    f"FP = {fp_m:.2f}m", True, extension_direction='down')
         
-        # LEVEL 3: Below bridge - Overhang
+        # LEVEL 3: Below bridge - Overhang (BELOW - extension lines go UP)
         y_level3 = base_y + 50
         
         if n > 0 and len(girder_positions) > 0:
             first_girder_x = girder_positions[0]
             overhang_m = self.params.get('deck_overhang', 1000) / 1000
             self.draw_dimension_arrow(painter, deck_left_x, y_level3, first_girder_x, y_level3,
-                                    f"Overhang = {overhang_m:.2f} m", True)
+                                    f"Overhang = {overhang_m:.2f} m", True, 
+                                    extension_direction='up')
         
-        # Girder spacing
+        # Girder spacing (BELOW - extension lines go UP)
         if n > 1 and len(girder_positions) >= 2:
             y_level4 = base_y + 90
             x_left = girder_positions[0]
@@ -549,7 +584,8 @@ class BridgeCADWidget(QWidget):
             
             gs_m = self.params['girder_spacing'] / 1000
             self.draw_dimension_arrow(painter, x_left, y_level4, x_right, y_level4,
-                                    f"Girder Spacing = {gs_m:.2f} m", True)
+                                    f"Girder Spacing = {gs_m:.2f} m", True, 
+                                    extension_direction='up')
         
         # RIGHT SIDE: Vertical dimensions
         if len(girder_positions) > 0:
@@ -565,7 +601,7 @@ class BridgeCADWidget(QWidget):
             x_right1 = x_right_base
             fp_t_mm = self.params['footpath_thickness']
             self.draw_dimension_arrow(painter, x_right1, fp_top_y, x_right1, deck_bottom_y,
-                                    f"{fp_t_mm:.0f}mm", False, 1)
+                                    f"{fp_t_mm:.0f}mm", False, 1, extension_direction='right')
 
     def draw_i_section(self, painter, x, base_y, scale):
         """Draw I-section girder """
@@ -616,42 +652,62 @@ class BridgeCADWidget(QWidget):
         painter.drawRect(QRectF(x + tw/2, stiff_top_y, stiff_w, stiff_h))
         
 
-    def draw_crash_barrier(self, painter, x, y, scale):
+    def draw_crash_barrier(self, painter, x, y, scale, side='left'):
         """
-        Draw crash barrier dimensions:
-        bottom width = 500 mm
-        top width    = 300 mm
-        height       = 800 mm
-        scale = pixels per millimeter
-
-        x,y = left-bottom coordinate in painter coordinates
+        Draw crash barrier with profile shape
+        x, y = left-bottom coordinate for left barrier, right-bottom for right barrier
+        side = 'left' or 'right' to mirror the shape
         """
-        # exact dimensions in mm
-        BOT_WIDTH_MM = 500.0
-        TOP_WIDTH_MM = 300.0
-        HEIGHT_MM    = 800.0
-
-        # convert to pixels
-        bot_w = BOT_WIDTH_MM * scale
-        top_w = TOP_WIDTH_MM * scale
-        h     = HEIGHT_MM * scale
-
-        # style
-        painter.setBrush(QBrush(QColor(255, 165, 0)))           # orange fill
-        painter.setPen(QPen(QColor(0, 0, 0), max(1.0, scale)))  # outline thickness scales a bit with zoom
-
-        # polygon points (left-bottom is (x,y))
-        top_left_x  = x + (bot_w - top_w) / 2.0
-        top_right_x = top_left_x + top_w
-
-        points = [
-            QPointF(top_left_x,    y - h),   # top-left
-            QPointF(top_right_x,   y - h),   # top-right
-            QPointF(x + bot_w,     y),       # bottom-right
-            QPointF(x,             y)        # bottom-left
-        ]
-
+        # Base dimensions in mm
+        BOTTOM_WIDTH_MM = 500.0
+        HEIGHT_MM = 800.0
+        
+        # Convert to pixels
+        bot_w = BOTTOM_WIDTH_MM * scale
+        h = HEIGHT_MM * scale
+        
+        # Proportions based on SVG
+        top_width_ratio = 30/245
+        slant_height_ratio = 350/600
+        drop_height_ratio = 60/600
+        slant_offset_ratio = 210/245
+        
+        top_w = bot_w * top_width_ratio
+        slant_h = h * slant_height_ratio
+        drop_h = h * drop_height_ratio
+        slant_offset = bot_w * slant_offset_ratio
+        
+        if side == 'left':
+            # Left barrier - slant on right side
+            points = [
+                QPointF(x + 5*scale, y - h),                          # top-left
+                QPointF(x + 5*scale + top_w, y - h),                  # top-right (small flat)
+                QPointF(x + slant_offset, y - h + slant_h),           # slanted-face end
+                QPointF(x + slant_offset, y - h + slant_h + drop_h),  # after short drop
+                QPointF(x + slant_offset, y),                         # bottom-right
+                QPointF(x, y)                                         # bottom-left
+            ]
+        else:
+            # Right barrier - mirrored, slant on left side
+            points = [
+                QPointF(x + bot_w - 5*scale - top_w, y - h),          # top-left (small flat)
+                QPointF(x + bot_w - 5*scale, y - h),                  # top-right
+                QPointF(x + bot_w, y),                                # bottom-right
+                QPointF(x + bot_w - slant_offset, y),                 # bottom-left of slant
+                QPointF(x + bot_w - slant_offset, y - h + slant_h + drop_h),  # after short drop
+                QPointF(x + bot_w - slant_offset, y - h + slant_h),   # slanted-face end
+            ]
+        
+        # Style
+        painter.setBrush(QBrush(QColor(255, 165, 0)))  # Orange fill
+        painter.setPen(QPen(QColor(0, 0, 0), max(2.0, scale*2)))  # Thick outline
+        
+        # Draw main polygon
         painter.drawPolygon(QPolygonF(points))
+        
+        # Optional: Draw internal outline for detail
+        painter.setPen(QPen(QColor(0, 0, 0), max(1.0, scale)))
+        painter.drawPolyline(QPolygonF(points + [points[0]]))  # Close the shape
     def draw_railing_rectangle(self, painter, x, y, scale, side):
         """Draw railing as vertical rectangle sitting ON the footpath
            Height = 1000 mm, Post diameter = 50 mm, Rail count = 3
