@@ -769,10 +769,39 @@ class BridgeCADWidget(QWidget):
         
         # LEVEL 1: Overall Bridge Width
         y_level1 = deck_top_y - 150
-        total_width_m = (deck_right_x - deck_left_x) / scale / 1000
-        self.draw_dimension_arrow(painter, deck_left_x, y_level1, deck_right_x, y_level1,
-                                f"Overall Bridge Width = {total_width_m:.2f} m", True, 
-                                extension_direction='down')
+        total_width_m = (deck_right_x - deck_left_x) / scale / 1000.0
+
+        # 1) draw the dimension line + arrows 
+        self.draw_dimension_arrow(
+            painter,
+            deck_left_x, y_level1,
+            deck_right_x, y_level1,
+            "", True,
+            extension_direction='down'
+        )
+
+        # 2) drawing the centered label at the midpoint
+        mid_x = (deck_left_x + deck_right_x) / 2.0
+        label_text = f"Overall Bridge Width = {total_width_m:.2f} m"
+
+        font = QFont('Arial', 7, QFont.Bold)
+        painter.setFont(font)
+        metrics = painter.fontMetrics()
+        text_w = metrics.boundingRect(label_text).width()
+        # choose y position slightly above the dim line (same offset used elsewhere)
+        text_y = y_level1 - 8
+
+        self.draw_text_with_background(
+            painter,
+            mid_x - text_w / 2.0,   # left x so text is centered at mid_x
+            text_y,
+            label_text,
+            QColor(255, 255, 255, 240),
+            QColor(0, 0, 0),
+            7,
+            True
+        )
+
         
         # LEVEL 2: Footpath dimensions
         y_level2 = deck_top_y - 115
